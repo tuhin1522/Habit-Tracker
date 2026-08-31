@@ -22,6 +22,9 @@ export default function DashboardView() {
   const openHabitCreator = useAppStore((s) => s.openHabitCreator);
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
+  // Only show active habits in the monthly tracker grid
+  const activeHabits = habits.filter(h => h.status === 'active' || !h.status);
+
   const monthStart = startOfMonth(currentMonth);
   const monthEnd   = endOfMonth(currentMonth);
   const daysInMonth = getDaysInMonth(currentMonth);
@@ -44,7 +47,7 @@ export default function DashboardView() {
 
   // Per-habit stats for this month
   const habitStats = useMemo(() => {
-    return habits.map((h) => {
+    return activeHabits.map((h) => {
       const completions = allDays.filter((d) =>
         h.completedDates.includes(format(d, 'yyyy-MM-dd'))
       ).length;
@@ -56,7 +59,7 @@ export default function DashboardView() {
   }, [habits, currentMonth]);
 
   // Overall stats
-  const totalGoal      = habits.length * daysInMonth;
+  const totalGoal      = activeHabits.length * daysInMonth;
   const totalCompleted = habitStats.reduce((s, h) => s + h.completions, 0);
   const totalLeft      = Math.max(0, totalGoal - totalCompleted);
   const overallPct     = totalGoal ? Math.round((totalCompleted / totalGoal) * 100) : 0;
@@ -65,9 +68,9 @@ export default function DashboardView() {
   const dailyProgress = useMemo(() => {
     return allDays.map((d) => {
       const dateStr = format(d, 'yyyy-MM-dd');
-      const done = habits.filter((h) => h.completedDates.includes(dateStr)).length;
-      const pct  = habits.length ? Math.round((done / habits.length) * 100) : 0;
-      return { day: format(d, 'd'), pct, done, total: habits.length };
+      const done = activeHabits.filter((h) => h.completedDates.includes(dateStr)).length;
+      const pct  = activeHabits.length ? Math.round((done / activeHabits.length) * 100) : 0;
+      return { day: format(d, 'd'), pct, done, total: activeHabits.length };
     });
   }, [habits, currentMonth]);
 
@@ -104,7 +107,7 @@ export default function DashboardView() {
               </div>
             </div>
             <div className="text-xs text-zinc-600">
-              {habits.length} habits · {daysInMonth} days
+              {activeHabits.length} habits · {daysInMonth} days
             </div>
           </div>
 
@@ -166,14 +169,14 @@ export default function DashboardView() {
 
                 {/* Habit rows */}
                 <tbody>
-                  {habits.length === 0 ? (
+                  {activeHabits.length === 0 ? (
                     <tr>
                       <td colSpan={weeks.length * 7 + 1} className="py-12 text-center text-zinc-600 text-sm">
                         No habits yet — add one using the + button in the Habits page
                       </td>
                     </tr>
                   ) : (
-                    habits.map((habit) => {
+                    activeHabits.map((habit) => {
                       return (
                         <tr
                           key={habit.id}
@@ -249,7 +252,7 @@ export default function DashboardView() {
                   )}
 
                   {/* Completion % row */}
-                  {habits.length > 0 && (
+                  {activeHabits.length > 0 && (
                     <tr style={{ borderTop: '1px solid #3f3f46' }}>
                       <td className="sticky left-0 z-10 bg-zinc-900 border-r border-zinc-800 px-4 py-2">
                         <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Daily %</span>
@@ -257,8 +260,8 @@ export default function DashboardView() {
                       {weeks.map((week, wi) =>
                         week.map((day, di) => {
                           const dateStr = day ? format(day, 'yyyy-MM-dd') : null;
-                          const done    = dateStr ? habits.filter((h) => h.completedDates.includes(dateStr)).length : 0;
-                          const pct     = habits.length ? Math.round((done / habits.length) * 100) : 0;
+                          const done    = dateStr ? activeHabits.filter((h) => h.completedDates.includes(dateStr)).length : 0;
+                          const pct     = activeHabits.length ? Math.round((done / activeHabits.length) * 100) : 0;
                           return (
                             <td
                               key={`pct-${wi}-${di}`}

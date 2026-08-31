@@ -22,6 +22,9 @@ export interface Habit {
   color: string;       // tailwind color key: 'emerald' | 'violet' | 'sky' | 'rose' | 'amber'
   completedDates: string[]; // ISO date strings 'YYYY-MM-DD'
   createdAt: string;
+  status: 'active' | 'completed' | 'archived';
+  completedAt?: string;
+  totalDaysTracked: number;
 }
 
 // ── Goal ───────────────────────────────────────────────────────────────────

@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, Circle, Trash2, Flame, Edit2 } from 'lucide-react';
+import { CheckCircle2, Circle, Trash2, Flame, Edit2, Archive, CheckCheck } from 'lucide-react';
 import { clsx } from 'clsx';
 import { format } from 'date-fns';
 import type { Habit } from '../../types';
@@ -17,7 +17,7 @@ interface HabitCardProps {
 }
 
 export function HabitCard({ habit, showSlot = false }: HabitCardProps) {
-  const { toggleHabit, deleteHabit } = useHabitStore();
+  const { toggleHabit, deleteHabit, markHabitCompleted, archiveHabit } = useHabitStore();
   const openHabitCreator = useAppStore((s) => s.openHabitCreator);
   const today = format(new Date(), 'yyyy-MM-dd');
   const isDone = habit.completedDates.includes(today);
@@ -103,6 +103,45 @@ export function HabitCard({ habit, showSlot = false }: HabitCardProps) {
         whileTap={{ scale: 0.9 }}
       >
         <Edit2 className="w-3.5 h-3.5" />
+      </motion.button>
+
+      {/* Mark Completed (on hover) */}
+      <motion.button
+        className="shrink-0 opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-zinc-600 hover:text-amber-400 hover:bg-amber-500/10 transition"
+        title="Mark as Completed / Mastered"
+        onClick={(e) => { 
+          e.stopPropagation(); 
+          markHabitCompleted(habit.id); 
+          // Micro-confetti effect using basic DOM element
+          const confetti = document.createElement('div');
+          confetti.innerHTML = '🎉';
+          confetti.style.position = 'fixed';
+          confetti.style.left = `${e.clientX}px`;
+          confetti.style.top = `${e.clientY}px`;
+          confetti.style.fontSize = '3rem';
+          confetti.style.pointerEvents = 'none';
+          confetti.style.transition = 'all 1s cubic-bezier(0.25, 1, 0.5, 1)';
+          confetti.style.transform = 'translate(-50%, -50%) scale(0.5)';
+          document.body.appendChild(confetti);
+          requestAnimationFrame(() => {
+            confetti.style.transform = 'translate(-50%, -200px) scale(1.5)';
+            confetti.style.opacity = '0';
+          });
+          setTimeout(() => document.body.removeChild(confetti), 1000);
+        }}
+        whileTap={{ scale: 0.9 }}
+      >
+        <CheckCheck className="w-3.5 h-3.5" />
+      </motion.button>
+
+      {/* Archive (on hover) */}
+      <motion.button
+        className="shrink-0 opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-zinc-600 hover:text-blue-400 hover:bg-blue-500/10 transition"
+        title="Archive Habit"
+        onClick={(e) => { e.stopPropagation(); archiveHabit(habit.id); }}
+        whileTap={{ scale: 0.9 }}
+      >
+        <Archive className="w-3.5 h-3.5" />
       </motion.button>
 
       {/* Delete (on hover) */}

@@ -37,14 +37,14 @@ function calculateStreak(completedDates: string[]): number {
 function seedHabits(): Habit[] {
   const today = format(new Date(), 'yyyy-MM-dd');
   return [
-    { id: nanoid(), title: 'Morning Meditation', description: '10 minutes mindfulness', category: 'Mindset', timeSlot: 'Morning', frequency: 'daily', streak: 1, longestStreak: 1, color: 'violet', completedDates: [today], createdAt: new Date().toISOString() },
-    { id: nanoid(), title: 'Exercise / Workout', description: '30+ min physical activity', category: 'Health', timeSlot: 'Morning', frequency: 'daily', streak: 0, longestStreak: 0, color: 'emerald', completedDates: [], createdAt: new Date().toISOString() },
-    { id: nanoid(), title: 'Read 20 Pages', description: 'Non-fiction or skill book', category: 'Skills', timeSlot: 'Afternoon', frequency: 'daily', streak: 0, longestStreak: 0, color: 'sky', completedDates: [], createdAt: new Date().toISOString() },
-    { id: nanoid(), title: 'Deep Work Block', description: 'No phone, 90-min focus session', category: 'Productivity', timeSlot: 'Afternoon', frequency: 'daily', streak: 0, longestStreak: 0, color: 'amber', completedDates: [], createdAt: new Date().toISOString() },
-    { id: nanoid(), title: 'No Social Media', description: 'Digital discipline', category: 'Mindset', timeSlot: 'Evening', frequency: 'daily', streak: 0, longestStreak: 0, color: 'rose', completedDates: [], createdAt: new Date().toISOString() },
-    { id: nanoid(), title: 'Evening Walk', description: '20 minute walk outside', category: 'Health', timeSlot: 'Evening', frequency: 'daily', streak: 0, longestStreak: 0, color: 'emerald', completedDates: [], createdAt: new Date().toISOString() },
-    { id: nanoid(), title: 'Plan Tomorrow', description: 'Write top 3 tasks for tomorrow', category: 'Productivity', timeSlot: 'Night', frequency: 'daily', streak: 0, longestStreak: 0, color: 'amber', completedDates: [], createdAt: new Date().toISOString() },
-    { id: nanoid(), title: 'Sleep by 11pm', description: '7-8 hours sleep target', category: 'Health', timeSlot: 'Night', frequency: 'daily', streak: 0, longestStreak: 0, color: 'sky', completedDates: [], createdAt: new Date().toISOString() },
+    { id: nanoid(), title: 'Morning Meditation', description: '10 minutes mindfulness', category: 'Mindset', timeSlot: 'Morning', frequency: 'daily', streak: 1, longestStreak: 1, color: 'violet', completedDates: [today], createdAt: new Date().toISOString(), status: 'active', totalDaysTracked: 0 },
+    { id: nanoid(), title: 'Exercise / Workout', description: '30+ min physical activity', category: 'Health', timeSlot: 'Morning', frequency: 'daily', streak: 0, longestStreak: 0, color: 'emerald', completedDates: [], createdAt: new Date().toISOString(), status: 'active', totalDaysTracked: 0 },
+    { id: nanoid(), title: 'Read 20 Pages', description: 'Non-fiction or skill book', category: 'Skills', timeSlot: 'Afternoon', frequency: 'daily', streak: 0, longestStreak: 0, color: 'sky', completedDates: [], createdAt: new Date().toISOString(), status: 'active', totalDaysTracked: 0 },
+    { id: nanoid(), title: 'Deep Work Block', description: 'No phone, 90-min focus session', category: 'Productivity', timeSlot: 'Afternoon', frequency: 'daily', streak: 0, longestStreak: 0, color: 'amber', completedDates: [], createdAt: new Date().toISOString(), status: 'active', totalDaysTracked: 0 },
+    { id: nanoid(), title: 'No Social Media', description: 'Digital discipline', category: 'Mindset', timeSlot: 'Evening', frequency: 'daily', streak: 0, longestStreak: 0, color: 'rose', completedDates: [], createdAt: new Date().toISOString(), status: 'active', totalDaysTracked: 0 },
+    { id: nanoid(), title: 'Evening Walk', description: '20 minute walk outside', category: 'Health', timeSlot: 'Evening', frequency: 'daily', streak: 0, longestStreak: 0, color: 'emerald', completedDates: [], createdAt: new Date().toISOString(), status: 'active', totalDaysTracked: 0 },
+    { id: nanoid(), title: 'Plan Tomorrow', description: 'Write top 3 tasks for tomorrow', category: 'Productivity', timeSlot: 'Night', frequency: 'daily', streak: 0, longestStreak: 0, color: 'amber', completedDates: [], createdAt: new Date().toISOString(), status: 'active', totalDaysTracked: 0 },
+    { id: nanoid(), title: 'Sleep by 11pm', description: '7-8 hours sleep target', category: 'Health', timeSlot: 'Night', frequency: 'daily', streak: 0, longestStreak: 0, color: 'sky', completedDates: [], createdAt: new Date().toISOString(), status: 'active', totalDaysTracked: 0 },
   ];
 }
 
@@ -55,10 +55,13 @@ interface HabitStore {
   habits: Habit[];
   isLoaded: boolean;
   loadHabits: () => Promise<void>;
-  addHabit: (data: Omit<Habit, 'id' | 'streak' | 'longestStreak' | 'completedDates' | 'createdAt'>) => Promise<void>;
+  addHabit: (data: Omit<Habit, 'id' | 'streak' | 'longestStreak' | 'completedDates' | 'createdAt' | 'status' | 'totalDaysTracked' | 'completedAt'>) => Promise<void>;
   updateHabit: (id: string, updates: Partial<Habit>) => Promise<void>;
   deleteHabit: (id: string) => Promise<void>;
   toggleHabit: (id: string, date: string) => Promise<void>;
+  markHabitCompleted: (id: string) => Promise<void>;
+  archiveHabit: (id: string) => Promise<void>;
+  reactivateHabit: (id: string) => Promise<void>;
 }
 
 export const useHabitStore = create<HabitStore>((set, get) => ({
@@ -84,6 +87,8 @@ export const useHabitStore = create<HabitStore>((set, get) => ({
       longestStreak: 0,
       completedDates: [],
       createdAt: new Date().toISOString(),
+      status: 'active',
+      totalDaysTracked: 0,
     };
     await dbSaveHabit(habit);
     set((s) => ({ habits: [...s.habits, habit] }));
@@ -112,6 +117,38 @@ export const useHabitStore = create<HabitStore>((set, get) => ({
       const longestStreak = Math.max(h.longestStreak, streak);
       return { ...h, completedDates, streak, longestStreak };
     });
+    const updated = habits.find((h) => h.id === id)!;
+    await dbSaveHabit(updated);
+    set({ habits });
+  },
+
+  markHabitCompleted: async (id) => {
+    const habits = get().habits.map((h) => {
+      if (h.id !== id) return h;
+      // Calculate total days tracked
+      const start = parseISO(h.createdAt);
+      const diff = Math.round((new Date().getTime() - start.getTime()) / 86400000);
+      return { 
+        ...h, 
+        status: 'completed' as const, 
+        completedAt: new Date().toISOString(),
+        totalDaysTracked: Math.max(1, diff)
+      };
+    });
+    const updated = habits.find((h) => h.id === id)!;
+    await dbSaveHabit(updated);
+    set({ habits });
+  },
+
+  archiveHabit: async (id) => {
+    const habits = get().habits.map((h) => (h.id === id ? { ...h, status: 'archived' as const } : h));
+    const updated = habits.find((h) => h.id === id)!;
+    await dbSaveHabit(updated);
+    set({ habits });
+  },
+
+  reactivateHabit: async (id) => {
+    const habits = get().habits.map((h) => (h.id === id ? { ...h, status: 'active' as const, completedAt: undefined } : h));
     const updated = habits.find((h) => h.id === id)!;
     await dbSaveHabit(updated);
     set({ habits });

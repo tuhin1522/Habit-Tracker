@@ -18,11 +18,17 @@ export default function HabitsView() {
   const habits = useHabitStore((s) => s.habits);
   const openHabitCreator = useAppStore((s) => s.openHabitCreator);
   const [filterCat, setFilterCat] = useState<HabitCategory | 'All'>('All');
+  const [statusTab, setStatusTab] = useState<'active' | 'completed' | 'archived'>('active');
   const today = format(new Date(), 'yyyy-MM-dd');
 
-  const filtered = filterCat === 'All' ? habits : habits.filter((h) => h.category === filterCat);
-  const totalStreak = habits.reduce((sum, h) => sum + h.streak, 0);
-  const completedToday = habits.filter((h) => h.completedDates.includes(today)).length;
+  const filtered = habits.filter((h) => {
+    const isCatMatch = filterCat === 'All' || h.category === filterCat;
+    const isStatusMatch = statusTab === 'active' ? (h.status === 'active' || !h.status) : h.status === statusTab;
+    return isCatMatch && isStatusMatch;
+  });
+  const activeHabits = habits.filter((h) => h.status === 'active' || !h.status);
+  const totalStreak = activeHabits.reduce((sum, h) => sum + h.streak, 0);
+  const completedToday = activeHabits.filter((h) => h.completedDates.includes(today)).length;
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
@@ -31,7 +37,7 @@ export default function HabitsView() {
         <div>
           <h1 className="text-2xl font-extrabold text-zinc-100">My Habits</h1>
           <p className="text-zinc-500 text-sm mt-0.5">
-            {completedToday}/{habits.length} completed today · {totalStreak} total streak days
+            {completedToday}/{activeHabits.length} completed today · {totalStreak} total streak days
           </p>
         </div>
         <motion.button
@@ -67,6 +73,23 @@ export default function HabitsView() {
         ))}
       </div>
 
+      {/* Status Tabs */}
+      <div className="flex gap-2 border-b border-zinc-800 pb-2">
+        {(['active', 'completed', 'archived'] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setStatusTab(tab)}
+            className={`px-4 py-2 text-sm font-semibold rounded-t-xl transition-colors ${
+              statusTab === tab
+                ? 'text-emerald-400 border-b-2 border-emerald-400 bg-zinc-900/50'
+                : 'text-zinc-500 hover:text-zinc-300'
+            }`}
+          >
+            {tab === 'active' ? 'Active (In Progress)' : tab === 'completed' ? 'Completed Topics / Mastered' : 'Archived'}
+          </button>
+        ))}
+      </div>
+
       {/* Habit List */}
       <div className="space-y-2">
         <AnimatePresence>
@@ -76,15 +99,45 @@ export default function HabitsView() {
               className="flex flex-col items-center gap-3 py-12 text-center"
             >
               <Flame className="w-10 h-10 text-zinc-700" />
-              <p className="text-zinc-500 text-sm">No habits yet.</p>
-              <button onClick={() => openHabitCreator()} className="text-emerald-400 text-sm hover:underline">
-                Create your first habit →
-              </button>
+              <p className="text-zinc-500 text-sm">No {statusTab} habits found.</p>
+              {statusTab === 'active' && (
+                <button onClick={() => openHabitCreator()} className="text-emerald-400 text-sm hover:underline">
+                  Create your first habit →
+                </button>
+              )}
             </motion.div>
           ) : (
-            filtered.map((habit) => (
-              <HabitCard key={habit.id} habit={habit} showSlot />
-            ))
+            filtered.map((habit) => {
+              if (statusTab === 'active') {
+                return <HabitCard key={habit.id} habit={habit} showSlot />;
+              }
+              // Completed or Archived card UI
+              return (
+                <motion.div
+                  key={habit.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex items-center justify-between"
+                >
+                  <div>
+                    <h3 className="text-sm font-semibold text-zinc-200">{habit.title}</h3>
+                    <div className="flex gap-3 mt-2 text-xs text-zinc-500">
+                      {statusTab === 'completed' && habit.completedAt && (
+                        <span>Completed: {format(new Date(habit.completedAt), 'MMM d, yyyy')}</span>
+                      )}
+                      <span>{habit.totalDaysTracked || 0} days tracked</span>
+                      {habit.longestStreak > 0 && <span className="text-amber-400">Streak: {habit.longestStreak}</span>}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => useHabitStore.getState().reactivateHabit(habit.id)}
+                    className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-semibold rounded-lg transition"
+                  >
+                    Reactivate
+                  </button>
+                </motion.div>
+              );
+            })
           )}
         </AnimatePresence>
       </div>

@@ -21,7 +21,7 @@ const SLOT_CONFIG: Record<TimeSlot, { style: React.CSSProperties }> = {
 };
 
 export function DailyMatrix() {
-  const habits = useHabitStore((s) => s.habits);
+  const habits = useHabitStore((s) => s.habits).filter(h => h.status === 'active' || !h.status);
   const openHabitCreator = useAppStore((s) => s.openHabitCreator);
   const today = format(new Date(), 'yyyy-MM-dd');
 
