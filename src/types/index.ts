@@ -25,6 +25,16 @@ export interface Habit {
   status: 'active' | 'completed' | 'archived';
   completedAt?: string;
   totalDaysTracked: number;
+  
+  // New properties for features
+  habitType?: 'boolean' | 'numeric_countdown';
+  durationDaysTarget?: number;
+  numericGoal?: {
+    totalUnits: number;
+    remainingUnits: number;
+    unitLabel: string;
+    dailyQuota: number;
+  };
 }
 
 // ── Goal ───────────────────────────────────────────────────────────────────

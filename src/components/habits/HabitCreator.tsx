@@ -1,7 +1,7 @@
 import React from 'react';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Minus } from 'lucide-react';
+import { Plus, Minus, Target, Hash, Calendar } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { useHabitStore } from '../../store/useHabitStore';
 import { useAppStore } from '../../store/useAppStore';
@@ -19,6 +19,8 @@ interface HabitCreatorProps {
 const CATEGORIES: HabitCategory[] = ['Health', 'Mindset', 'Skills', 'Productivity', 'Other'];
 const SLOTS: TimeSlot[] = ['Morning', 'Afternoon', 'Evening', 'Night'];
 
+type CreatorMode = 'regular' | 'challenge' | 'numeric';
+
 export function HabitCreator({ isOpen, onClose }: HabitCreatorProps) {
   const { addHabit, updateHabit, habits } = useHabitStore();
   const editingHabitId = useAppStore((s) => s.editingHabitId);
@@ -31,6 +33,14 @@ export function HabitCreator({ isOpen, onClose }: HabitCreatorProps) {
   const [frequency, setFrequency] = useState<HabitFrequency>('daily');
   const [color, setColor] = useState('emerald');
   const [targetValue, setTargetValue] = useState<number | undefined>(undefined);
+  
+  // New States
+  const [creatorMode, setCreatorMode] = useState<CreatorMode>('regular');
+  const [durationDaysTarget, setDurationDaysTarget] = useState<number | undefined>(undefined);
+  const [totalUnits, setTotalUnits] = useState<number | undefined>(undefined);
+  const [dailyQuota, setDailyQuota] = useState<number | undefined>(undefined);
+  const [unitLabel, setUnitLabel] = useState<string>('');
+
   const [loading, setLoading] = useState(false);
 
   React.useEffect(() => {
@@ -42,10 +52,20 @@ export function HabitCreator({ isOpen, onClose }: HabitCreatorProps) {
       setFrequency(editHabit.frequency);
       setColor(editHabit.color);
       setTargetValue(editHabit.targetValue);
+      
+      if (editHabit.habitType === 'numeric_countdown') {
+        setCreatorMode('numeric');
+        setTotalUnits(editHabit.numericGoal?.totalUnits);
+        setDailyQuota(editHabit.numericGoal?.dailyQuota);
+        setUnitLabel(editHabit.numericGoal?.unitLabel || '');
+      } else if (editHabit.durationDaysTarget) {
+        setCreatorMode('challenge');
+        setDurationDaysTarget(editHabit.durationDaysTarget);
+      } else {
+        setCreatorMode('regular');
+      }
     } else if (isOpen) {
-      setTitle(''); setDescription(''); setCategory('Health');
-      setTimeSlot('Morning'); setFrequency('daily'); setColor('emerald');
-      setTargetValue(undefined);
+      reset();
     }
   }, [isOpen, editHabit]);
 
@@ -53,6 +73,11 @@ export function HabitCreator({ isOpen, onClose }: HabitCreatorProps) {
     setTitle(''); setDescription(''); setCategory('Health');
     setTimeSlot('Morning'); setFrequency('daily'); setColor('emerald');
     setTargetValue(undefined);
+    setCreatorMode('regular');
+    setDurationDaysTarget(undefined);
+    setTotalUnits(undefined);
+    setDailyQuota(undefined);
+    setUnitLabel('');
   };
 
   const handleClose = () => { reset(); onClose(); };
@@ -61,10 +86,37 @@ export function HabitCreator({ isOpen, onClose }: HabitCreatorProps) {
     e.preventDefault();
     if (!title.trim()) return;
     setLoading(true);
+
+    const habitType: 'boolean' | 'numeric_countdown' = creatorMode === 'numeric' ? 'numeric_countdown' : 'boolean';
+    
+    const numericGoal = creatorMode === 'numeric' && totalUnits && dailyQuota && unitLabel
+      ? {
+          totalUnits,
+          remainingUnits: editHabit?.numericGoal?.remainingUnits ?? totalUnits,
+          dailyQuota,
+          unitLabel
+        }
+      : undefined;
+
+    const finalDurationDays = creatorMode === 'challenge' ? durationDaysTarget : undefined;
+
+    const habitData = { 
+      title: title.trim(), 
+      description: description.trim() || undefined, 
+      category, 
+      timeSlot, 
+      frequency, 
+      color, 
+      targetValue,
+      habitType,
+      durationDaysTarget: finalDurationDays,
+      numericGoal
+    };
+
     if (editHabit) {
-      await updateHabit(editHabit.id, { title: title.trim(), description: description.trim() || undefined, category, timeSlot, frequency, color, targetValue });
+      await updateHabit(editHabit.id, habitData);
     } else {
-      await addHabit({ title: title.trim(), description: description.trim() || undefined, category, timeSlot, frequency, color, targetValue });
+      await addHabit(habitData);
     }
     setLoading(false);
     handleClose();
@@ -72,19 +124,109 @@ export function HabitCreator({ isOpen, onClose }: HabitCreatorProps) {
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title={editHabit ? "Edit Habit" : "Create New Habit"} width="max-w-md">
-      <form onSubmit={handleSubmit} className="p-6 space-y-5">
+      <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[85vh] overflow-y-auto custom-scrollbar">
+        
+        {/* Habit Type Selector */}
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Goal Type</label>
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              type="button"
+              onClick={() => setCreatorMode('regular')}
+              className={`flex flex-col items-center justify-center p-3 rounded-xl border transition ${creatorMode === 'regular' ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400' : 'bg-zinc-900 border-zinc-700 text-zinc-400 hover:bg-zinc-800'}`}
+            >
+              <Target className="w-5 h-5 mb-1.5" />
+              <span className="text-xs font-medium">Regular</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setCreatorMode('challenge')}
+              className={`flex flex-col items-center justify-center p-3 rounded-xl border transition ${creatorMode === 'challenge' ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400' : 'bg-zinc-900 border-zinc-700 text-zinc-400 hover:bg-zinc-800'}`}
+            >
+              <Calendar className="w-5 h-5 mb-1.5" />
+              <span className="text-xs font-medium">Challenge</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setCreatorMode('numeric')}
+              className={`flex flex-col items-center justify-center p-3 rounded-xl border transition ${creatorMode === 'numeric' ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400' : 'bg-zinc-900 border-zinc-700 text-zinc-400 hover:bg-zinc-800'}`}
+            >
+              <Hash className="w-5 h-5 mb-1.5" />
+              <span className="text-xs font-medium">Numeric</span>
+            </button>
+          </div>
+        </div>
+
         {/* Title */}
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Habit Name *</label>
           <input
             type="text"
-            placeholder="e.g. Morning Meditation"
+            placeholder={creatorMode === 'numeric' ? "e.g. Read 500 Pages" : "e.g. Morning Meditation"}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
             className="w-full bg-zinc-900 border border-zinc-700 text-zinc-100 text-sm px-3 py-2.5 rounded-xl placeholder:text-zinc-600 focus:border-emerald-500 transition"
           />
         </div>
+
+        {/* Conditional Fields based on mode */}
+        {creatorMode === 'challenge' && (
+          <div className="space-y-1.5 bg-zinc-900/50 p-4 rounded-xl border border-zinc-800">
+            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Challenge Duration (Days) *</label>
+            <input
+              type="number"
+              min={1}
+              required
+              placeholder="e.g. 30"
+              value={durationDaysTarget ?? ''}
+              onChange={(e) => setDurationDaysTarget(e.target.value ? parseInt(e.target.value) : undefined)}
+              className="w-full bg-zinc-900 border border-zinc-700 text-zinc-100 text-sm px-3 py-2.5 rounded-xl focus:border-emerald-500 transition"
+            />
+          </div>
+        )}
+
+        {creatorMode === 'numeric' && (
+          <div className="space-y-4 bg-zinc-900/50 p-4 rounded-xl border border-zinc-800">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Total Target *</label>
+                <input
+                  type="number"
+                  min={1}
+                  required
+                  placeholder="e.g. 500"
+                  value={totalUnits ?? ''}
+                  onChange={(e) => setTotalUnits(e.target.value ? parseInt(e.target.value) : undefined)}
+                  className="w-full bg-zinc-900 border border-zinc-700 text-zinc-100 text-sm px-3 py-2.5 rounded-xl focus:border-emerald-500 transition"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Unit Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. pages, words"
+                  value={unitLabel}
+                  onChange={(e) => setUnitLabel(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-700 text-zinc-100 text-sm px-3 py-2.5 rounded-xl focus:border-emerald-500 transition"
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Daily Quota *</label>
+              <input
+                type="number"
+                min={1}
+                required
+                placeholder="e.g. 10"
+                value={dailyQuota ?? ''}
+                onChange={(e) => setDailyQuota(e.target.value ? parseInt(e.target.value) : undefined)}
+                className="w-full bg-zinc-900 border border-zinc-700 text-zinc-100 text-sm px-3 py-2.5 rounded-xl focus:border-emerald-500 transition"
+              />
+            </div>
+          </div>
+        )}
 
         {/* Description */}
         <div className="space-y-1.5">
@@ -164,37 +306,39 @@ export function HabitCreator({ isOpen, onClose }: HabitCreatorProps) {
           </div>
         </div>
 
-        {/* Target Value */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Target Value (optional)</label>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setTargetValue((v) => Math.max(1, (v ?? 1) - 1))}
-              className="p-2 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-zinc-100 transition"
-            >
-              <Minus className="w-3.5 h-3.5" />
-            </button>
-            <input
-              type="number"
-              min={1}
-              placeholder="—"
-              value={targetValue ?? ''}
-              onChange={(e) => setTargetValue(e.target.value ? parseInt(e.target.value) : undefined)}
-              className="flex-1 bg-zinc-900 border border-zinc-700 text-zinc-100 text-sm px-3 py-2 rounded-xl text-center focus:border-emerald-500 transition"
-            />
-            <button
-              type="button"
-              onClick={() => setTargetValue((v) => (v ?? 0) + 1)}
-              className="p-2 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-zinc-100 transition"
-            >
-              <Plus className="w-3.5 h-3.5" />
-            </button>
+        {/* Target Value (Original feature, leave for compatibility) */}
+        {creatorMode === 'regular' && (
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Daily Target Value (optional)</label>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setTargetValue((v) => Math.max(1, (v ?? 1) - 1))}
+                className="p-2 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-zinc-100 transition"
+              >
+                <Minus className="w-3.5 h-3.5" />
+              </button>
+              <input
+                type="number"
+                min={1}
+                placeholder="—"
+                value={targetValue ?? ''}
+                onChange={(e) => setTargetValue(e.target.value ? parseInt(e.target.value) : undefined)}
+                className="flex-1 bg-zinc-900 border border-zinc-700 text-zinc-100 text-sm px-3 py-2 rounded-xl text-center focus:border-emerald-500 transition"
+              />
+              <button
+                type="button"
+                onClick={() => setTargetValue((v) => (v ?? 0) + 1)}
+                className="p-2 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-zinc-100 transition"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Submit */}
-        <div className="flex gap-2 pt-1">
+        <div className="flex gap-2 pt-2">
           <button
             type="button"
             onClick={handleClose}

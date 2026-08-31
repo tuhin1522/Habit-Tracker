@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, Circle, ChevronDown, ChevronUp, Trash2, Calendar } from 'lucide-react';
+import { CheckCircle2, Circle, ChevronDown, ChevronUp, Trash2, Calendar, Edit2 } from 'lucide-react';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { clsx } from 'clsx';
 import type { Goal } from '../../types';
 import { CATEGORY_COLORS } from '../../types';
 import { useGoalStore } from '../../store/useGoalStore';
+import { useAppStore } from '../../store/useAppStore';
 import { CategoryBadge } from '../ui/Badge';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -17,6 +18,7 @@ interface GoalCardProps {
 
 export function GoalCard({ goal }: GoalCardProps) {
   const { toggleMilestone, deleteGoal } = useGoalStore();
+  const openGoalCreator = useAppStore((s) => s.openGoalCreator);
   const [expanded, setExpanded] = useState(false);
   const accentColor = CATEGORY_COLORS[goal.category];
   const daysLeft = differenceInDays(parseISO(goal.targetDate), new Date());
@@ -53,6 +55,12 @@ export function GoalCard({ goal }: GoalCardProps) {
               className="p-1.5 rounded-lg text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 transition"
             >
               {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+            <button
+              onClick={() => openGoalCreator(goal.id)}
+              className="p-1.5 rounded-lg text-zinc-700 hover:text-emerald-400 hover:bg-emerald-500/10 transition opacity-0 group-hover:opacity-100"
+            >
+              <Edit2 className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => deleteGoal(goal.id)}

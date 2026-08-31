@@ -62,6 +62,7 @@ interface HabitStore {
   markHabitCompleted: (id: string) => Promise<void>;
   archiveHabit: (id: string) => Promise<void>;
   reactivateHabit: (id: string) => Promise<void>;
+  logDailyProgress: (id: string, unitsCompleted: number, dateStr: string) => Promise<void>;
 }
 
 export const useHabitStore = create<HabitStore>((set, get) => ({
@@ -115,7 +116,17 @@ export const useHabitStore = create<HabitStore>((set, get) => ({
         : [...h.completedDates, date];
       const streak = calculateStreak(completedDates);
       const longestStreak = Math.max(h.longestStreak, streak);
-      return { ...h, completedDates, streak, longestStreak };
+      
+      let status = h.status;
+      let completedAt = h.completedAt;
+      
+      // Auto-complete if day challenge target reached
+      if (h.durationDaysTarget && completedDates.length >= h.durationDaysTarget && !isCompleted) {
+         status = 'completed';
+         completedAt = new Date().toISOString();
+      }
+
+      return { ...h, completedDates, streak, longestStreak, status, completedAt };
     });
     const updated = habits.find((h) => h.id === id)!;
     await dbSaveHabit(updated);
@@ -149,6 +160,44 @@ export const useHabitStore = create<HabitStore>((set, get) => ({
 
   reactivateHabit: async (id) => {
     const habits = get().habits.map((h) => (h.id === id ? { ...h, status: 'active' as const, completedAt: undefined } : h));
+    const updated = habits.find((h) => h.id === id)!;
+    await dbSaveHabit(updated);
+    set({ habits });
+  },
+
+  logDailyProgress: async (id, unitsCompleted, dateStr) => {
+    const habits = get().habits.map((h) => {
+      if (h.id !== id || h.habitType !== 'numeric_countdown' || !h.numericGoal) return h;
+      
+      const remainingUnits = Math.max(0, h.numericGoal.remainingUnits - unitsCompleted);
+      const isCompletedToday = unitsCompleted >= h.numericGoal.dailyQuota || h.completedDates.includes(dateStr);
+      
+      let completedDates = h.completedDates;
+      if (isCompletedToday && !completedDates.includes(dateStr)) {
+        completedDates = [...completedDates, dateStr];
+      }
+      
+      const streak = calculateStreak(completedDates);
+      const longestStreak = Math.max(h.longestStreak, streak);
+      
+      let status = h.status;
+      let completedAt = h.completedAt;
+      if (remainingUnits <= 0) {
+        status = 'completed';
+        completedAt = new Date().toISOString();
+      }
+      
+      return { 
+        ...h, 
+        completedDates, 
+        streak, 
+        longestStreak,
+        status,
+        completedAt,
+        numericGoal: { ...h.numericGoal, remainingUnits }
+      };
+    });
+    
     const updated = habits.find((h) => h.id === id)!;
     await dbSaveHabit(updated);
     set({ habits });

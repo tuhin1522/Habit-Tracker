@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Trash2 } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { useGoalStore } from '../../store/useGoalStore';
+import { useAppStore } from '../../store/useAppStore';
 import { nanoid } from '../../store/nanoid';
 import type { HabitCategory, Milestone } from '../../types';
 import { addMonths, format } from 'date-fns';
@@ -18,7 +19,10 @@ interface GoalCreatorProps {
 const CATEGORIES: HabitCategory[] = ['Health', 'Mindset', 'Skills', 'Productivity', 'Other'];
 
 export function GoalCreator({ isOpen, onClose }: GoalCreatorProps) {
-  const { addGoal } = useGoalStore();
+  const { addGoal, updateGoal, goals } = useGoalStore();
+  const editingGoalId = useAppStore((s) => s.editingGoalId);
+  const editGoal = goals.find((g) => g.id === editingGoalId);
+
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<HabitCategory>('Mindset');
@@ -27,6 +31,19 @@ export function GoalCreator({ isOpen, onClose }: GoalCreatorProps) {
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [newMilestone, setNewMilestone] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && editGoal) {
+      setTitle(editGoal.title);
+      setDescription(editGoal.description || '');
+      setCategory(editGoal.category);
+      setTargetDate(editGoal.targetDate);
+      setWeeklyTarget(editGoal.weeklyTarget || '');
+      setMilestones(editGoal.milestones);
+    } else if (isOpen) {
+      reset();
+    }
+  }, [isOpen, editGoal]);
 
   const reset = () => {
     setTitle(''); setDescription(''); setCategory('Mindset');
@@ -46,19 +63,28 @@ export function GoalCreator({ isOpen, onClose }: GoalCreatorProps) {
     e.preventDefault();
     if (!title.trim()) return;
     setLoading(true);
-    await addGoal({
-      title: title.trim(), description: description.trim() || undefined,
-      category, targetDate, progress: 0, milestones,
-      weeklyTarget: weeklyTarget.trim() || undefined, status: 'active',
-    });
+    
+    if (editGoal) {
+      await updateGoal(editGoal.id, {
+        title: title.trim(), description: description.trim() || undefined,
+        category, targetDate, milestones,
+        weeklyTarget: weeklyTarget.trim() || undefined,
+      });
+    } else {
+      await addGoal({
+        title: title.trim(), description: description.trim() || undefined,
+        category, targetDate, progress: 0, milestones,
+        weeklyTarget: weeklyTarget.trim() || undefined, status: 'active',
+      });
+    }
     setLoading(false);
     reset();
     onClose();
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={() => { reset(); onClose(); }} title="Set New Goal" width="max-w-lg">
-      <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+    <Modal isOpen={isOpen} onClose={() => { reset(); onClose(); }} title={editGoal ? "Edit Goal" : "Set New Goal"} width="max-w-lg">
+      <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Goal Title *</label>
           <input type="text" placeholder="e.g. Build 90-Day Discipline Protocol" value={title}

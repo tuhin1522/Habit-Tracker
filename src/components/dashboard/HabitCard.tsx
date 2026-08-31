@@ -17,7 +17,7 @@ interface HabitCardProps {
 }
 
 export function HabitCard({ habit, showSlot = false }: HabitCardProps) {
-  const { toggleHabit, deleteHabit, markHabitCompleted, archiveHabit } = useHabitStore();
+  const { toggleHabit, deleteHabit, markHabitCompleted, archiveHabit, logDailyProgress } = useHabitStore();
   const openHabitCreator = useAppStore((s) => s.openHabitCreator);
   const today = format(new Date(), 'yyyy-MM-dd');
   const isDone = habit.completedDates.includes(today);
@@ -68,22 +68,63 @@ export function HabitCard({ habit, showSlot = false }: HabitCardProps) {
       <div className="w-1.5 h-8 rounded-full shrink-0" style={{ background: isDone ? accentHex : `${accentHex}40` }} />
 
       {/* Content */}
-      <div className="flex-1 min-w-0">
-        <p className={clsx(
-          'text-sm font-medium truncate transition-all duration-300',
-          isDone ? 'line-through text-zinc-500' : 'text-zinc-100'
-        )}>
-          {habit.title}
-        </p>
-        {habit.description && (
-          <p className="text-xs text-zinc-600 truncate mt-0.5">{habit.description}</p>
+      <div className="flex-1 min-w-0 py-1">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className={clsx(
+              'text-sm font-medium truncate transition-all duration-300',
+              isDone ? 'line-through text-zinc-500' : 'text-zinc-100'
+            )}>
+              {habit.title}
+            </p>
+            {habit.description && (
+              <p className="text-xs text-zinc-600 truncate mt-0.5">{habit.description}</p>
+            )}
+          </div>
+          
+          {/* Quick Log Button for Numeric */}
+          {habit.habitType === 'numeric_countdown' && habit.numericGoal && habit.numericGoal.remainingUnits > 0 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                logDailyProgress(habit.id, habit.numericGoal!.dailyQuota, today);
+              }}
+              className="shrink-0 flex items-center gap-1 text-[10px] font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-2 py-1 rounded-md transition"
+            >
+              +{habit.numericGoal.dailyQuota} {habit.numericGoal.unitLabel}
+            </button>
+          )}
+        </div>
+
+        {/* Numeric Progress Bar */}
+        {habit.habitType === 'numeric_countdown' && habit.numericGoal && (
+          <div className="mt-2 mb-1 pr-4">
+             <div className="flex justify-between text-[10px] text-zinc-400 mb-1">
+               <span>{habit.numericGoal.remainingUnits} {habit.numericGoal.unitLabel} remaining</span>
+               <span>{habit.numericGoal.totalUnits - habit.numericGoal.remainingUnits} / {habit.numericGoal.totalUnits}</span>
+             </div>
+             <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">
+               <motion.div 
+                 className="h-full rounded-full"
+                 style={{ background: accentHex }}
+                 initial={{ width: 0 }}
+                 animate={{ width: `${Math.min(100, Math.max(0, ((habit.numericGoal.totalUnits - habit.numericGoal.remainingUnits) / habit.numericGoal.totalUnits) * 100))}%` }}
+               />
+             </div>
+          </div>
         )}
-        <div className="flex items-center gap-2 mt-1">
+
+        <div className="flex flex-wrap items-center gap-2 mt-2">
           <CategoryBadge category={habit.category} />
           {showSlot && (
-            <span className="text-xs text-zinc-600">
+            <span className="text-xs text-zinc-600 flex items-center gap-1">
               {TIME_SLOT_EMOJI[habit.timeSlot]} {habit.timeSlot}
             </span>
+          )}
+          {habit.durationDaysTarget && (
+             <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-zinc-800 border border-zinc-700 text-zinc-400">
+               Day {habit.completedDates.length}/{habit.durationDaysTarget}
+             </span>
           )}
         </div>
       </div>

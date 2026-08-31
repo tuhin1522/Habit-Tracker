@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Plus, Target } from 'lucide-react';
 import { useGoalStore } from '../../store/useGoalStore';
+import { useAppStore } from '../../store/useAppStore';
 import { GoalCard } from './GoalCard';
 import { GoalCreator } from './GoalCreator';
 
@@ -10,7 +11,7 @@ import { GoalCreator } from './GoalCreator';
 // ─────────────────────────────────────────────────────────────────────────────
 export default function GoalsView() {
   const goals = useGoalStore((s) => s.goals);
-  const [isCreatorOpen, setCreatorOpen] = useState(false);
+  const { isGoalCreatorOpen, openGoalCreator, closeGoalCreator } = useAppStore();
   const [filter, setFilter] = useState<'active' | 'completed' | 'all'>('active');
 
   const filtered = goals.filter((g) => filter === 'all' ? true : g.status === filter);
@@ -31,7 +32,7 @@ export default function GoalsView() {
         </div>
         <motion.button
           whileTap={{ scale: 0.96 }}
-          onClick={() => setCreatorOpen(true)}
+          onClick={() => openGoalCreator()}
           id="goals-add-btn"
           className="flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-black text-sm font-semibold px-4 py-2 rounded-xl transition"
         >
@@ -77,7 +78,7 @@ export default function GoalsView() {
           >
             <Target className="w-10 h-10 text-zinc-700" />
             <p className="text-zinc-500 text-sm">No goals yet. What are you working towards?</p>
-            <button onClick={() => setCreatorOpen(true)} className="text-emerald-400 text-sm hover:underline">
+            <button onClick={() => openGoalCreator()} className="text-emerald-400 text-sm hover:underline">
               Set your first goal →
             </button>
           </motion.div>
@@ -88,7 +89,7 @@ export default function GoalsView() {
         )}
       </AnimatePresence>
 
-      <GoalCreator isOpen={isCreatorOpen} onClose={() => setCreatorOpen(false)} />
+      <GoalCreator isOpen={isGoalCreatorOpen} onClose={() => closeGoalCreator()} />
     </div>
   );
 }
