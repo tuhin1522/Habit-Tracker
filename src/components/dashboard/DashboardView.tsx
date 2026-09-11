@@ -11,6 +11,7 @@ import {
 } from 'date-fns';
 import { useHabitStore } from '../../store/useHabitStore';
 import { useAppStore } from '../../store/useAppStore';
+import { useFocusStore } from '../../store/useFocusStore';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Monthly Habit Grid Dashboard
@@ -20,6 +21,7 @@ const WEEK_DAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 export default function DashboardView() {
   const { habits, toggleHabit } = useHabitStore();
   const openHabitCreator = useAppStore((s) => s.openHabitCreator);
+  const { sessions, dailyTargetHours } = useFocusStore();
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   // Only show active habits in the monthly tracker grid
@@ -29,6 +31,15 @@ export default function DashboardView() {
   const monthEnd   = endOfMonth(currentMonth);
   const daysInMonth = getDaysInMonth(currentMonth);
   const allDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
+
+  // Focus Stats
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const todaysSessions = sessions.filter(s => s.dateStr === todayStr);
+  const totalSecondsToday = todaysSessions.reduce((acc, s) => acc + s.durationSeconds, 0);
+  const targetSeconds = (dailyTargetHours || 4) * 3600; // use dynamic target
+  const productivityPct = Math.min(100, Math.round((totalSecondsToday / targetSeconds) * 100));
+  const focusHrs = Math.floor(totalSecondsToday / 3600);
+  const focusMins = Math.floor((totalSecondsToday % 3600) / 60);
 
   // Group days into weeks (Su-Sa)
   const weeks = useMemo(() => {
@@ -43,7 +54,7 @@ export default function DashboardView() {
       result.push(week);
     }
     return result;
-  }, [currentMonth]);
+  }, [currentMonth, allDays, monthStart]);
 
   // Per-habit stats for this month
   const habitStats = useMemo(() => {
@@ -56,7 +67,7 @@ export default function DashboardView() {
       const pct = goal ? Math.round((completions / goal) * 100) : 0;
       return { ...h, completions, goal, left, pct };
     });
-  }, [habits, currentMonth]);
+  }, [habits, currentMonth, activeHabits, allDays, daysInMonth]);
 
   // Overall stats
   const totalGoal      = activeHabits.length * daysInMonth;
@@ -72,7 +83,7 @@ export default function DashboardView() {
       const pct  = activeHabits.length ? Math.round((done / activeHabits.length) * 100) : 0;
       return { day: format(d, 'd'), pct, done, total: activeHabits.length };
     });
-  }, [habits, currentMonth]);
+  }, [habits, currentMonth, activeHabits, allDays]);
 
   // Top habits by completion %
   const topHabits = [...habitStats].sort((a, b) => b.pct - a.pct).slice(0, 10);
@@ -288,6 +299,44 @@ export default function DashboardView() {
 
       {/* ── Right Stats Panel ────────────────────────────────── */}
       <div className="w-72 shrink-0 border-l border-zinc-800 overflow-y-auto bg-zinc-900/40 flex flex-col gap-4 p-4">
+
+        {/* Productivity Summary */}
+        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
+          <p className="text-xs font-bold text-zinc-300 uppercase tracking-wider mb-3">Productivity Today</p>
+          <div className="flex items-center gap-3">
+            <div className="flex-1 space-y-1.5">
+              <div className="flex items-center justify-between bg-zinc-800/60 rounded-lg px-2.5 py-1.5">
+                <span className="text-[10px] text-zinc-500 font-medium">Focused</span>
+                <span className="text-sm font-bold text-emerald-400">{focusHrs}h {focusMins}m</span>
+              </div>
+              <div className="flex items-center justify-between bg-zinc-800/60 rounded-lg px-2.5 py-1.5">
+                <span className="text-[10px] text-zinc-500 font-medium">Target</span>
+                <span className="text-sm font-bold text-zinc-300">{dailyTargetHours}h</span>
+              </div>
+            </div>
+            <div className="relative">
+              <PieChart width={72} height={72}>
+                <Pie
+                  data={[
+                    { value: productivityPct },
+                    { value: 100 - productivityPct },
+                  ]}
+                  cx={36} cy={36}
+                  innerRadius={22} outerRadius={34}
+                  startAngle={90} endAngle={-270}
+                  dataKey="value"
+                  strokeWidth={0}
+                >
+                  <Cell fill="#10b981" />
+                  <Cell fill="#27272a" />
+                </Pie>
+              </PieChart>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-[11px] font-black text-emerald-400">{productivityPct}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Daily Progress chart */}
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">

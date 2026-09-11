@@ -2,7 +2,8 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Flame, Target, BookOpen, BarChart3,
-  Settings, ChevronLeft, ChevronRight, Sparkles
+  Settings, ChevronLeft, ChevronRight, Sparkles, Timer,
+  GraduationCap, Trophy
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAppStore } from '../../store/useAppStore';
@@ -12,11 +13,14 @@ import type { NavPage } from '../../types';
 // Sidebar Navigation
 // ─────────────────────────────────────────────────────────────────────────────
 const NAV_ITEMS: { page: NavPage; icon: React.ElementType; label: string }[] = [
-  { page: 'dashboard',  icon: LayoutDashboard, label: 'Dashboard'  },
-  { page: 'habits',     icon: Flame,           label: 'Habits'     },
-  { page: 'goals',      icon: Target,          label: 'Goals'      },
-  { page: 'journal',    icon: BookOpen,         label: 'Journal'    },
-  { page: 'analytics',  icon: BarChart3,        label: 'Analytics'  },
+  { page: 'dashboard',  icon: LayoutDashboard, label: 'Dashboard'       },
+  { page: 'habits',     icon: Flame,           label: 'Habits'          },
+  { page: 'syllabus',   icon: GraduationCap,   label: 'Academic Matrix' },
+  { page: 'focus',      icon: Timer,           label: 'Focus Timer'     },
+  { page: 'goals',      icon: Target,          label: 'Goals'           },
+  { page: 'journal',    icon: BookOpen,        label: 'Journal'         },
+  { page: 'archive',    icon: Trophy,          label: 'Trophy Room'     },
+  { page: 'analytics',  icon: BarChart3,       label: 'Analytics'       },
 ];
 
 export function Sidebar() {
@@ -49,9 +53,21 @@ export function Sidebar() {
       </div>
 
       {/* Nav Items */}
-      <nav className="flex-1 py-4 px-2 space-y-1 overflow-hidden">
+      <nav className="flex-1 py-4 px-2 space-y-1 overflow-hidden overflow-y-auto">
         {NAV_ITEMS.map(({ page, icon: Icon, label }) => {
           const isActive = activePage === page;
+          // Special accent for Trophy Room and Academic Matrix
+          const accentClass = page === 'archive'
+            ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+            : page === 'syllabus'
+            ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'
+            : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+          const activeTextClass = page === 'archive'
+            ? 'text-amber-400'
+            : page === 'syllabus'
+            ? 'text-cyan-400'
+            : 'text-emerald-400';
+
           return (
             <button
               key={page}
@@ -60,18 +76,18 @@ export function Sidebar() {
               className={clsx(
                 'relative flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all duration-150 group',
                 isActive
-                  ? 'bg-emerald-500/10 text-emerald-400'
+                  ? `${activeTextClass}`
                   : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/60'
               )}
             >
               {isActive && (
                 <motion.div
                   layoutId="sidebar-active"
-                  className="absolute inset-0 rounded-xl bg-emerald-500/10 border border-emerald-500/20"
+                  className={`absolute inset-0 rounded-xl border ${accentClass}`}
                   transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
                 />
               )}
-              <Icon className={clsx('w-4 h-4 relative shrink-0', isActive ? 'text-emerald-400' : 'group-hover:text-zinc-200')} />
+              <Icon className={clsx('w-4 h-4 relative shrink-0', isActive ? activeTextClass : 'group-hover:text-zinc-200')} />
               <AnimatePresence>
                 {!sidebarCollapsed && (
                   <motion.span

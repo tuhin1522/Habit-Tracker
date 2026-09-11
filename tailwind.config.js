@@ -3,7 +3,22 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  safelist: [
+    // Bubble indicator dynamic classes
+    'bg-emerald-500', 'border-emerald-400', 'border-emerald-800', 'text-emerald-800', 'hover:border-emerald-600', 'hover:text-emerald-600',
+    'bg-cyan-500', 'border-cyan-400', 'border-cyan-800', 'text-cyan-900', 'hover:border-cyan-600', 'hover:text-cyan-600',
+    'bg-violet-500', 'border-violet-400', 'border-violet-800', 'text-violet-900', 'hover:border-violet-600', 'hover:text-violet-600',
+    'bg-amber-500', 'border-amber-400', 'border-amber-800', 'text-amber-900', 'hover:border-amber-600', 'hover:text-amber-600',
+    'bg-sky-500', 'border-sky-400', 'border-sky-800', 'text-sky-900', 'hover:border-sky-600', 'hover:text-sky-600',
+    // Shadow patterns
+    'shadow-[0_0_12px_rgba(16,185,129,0.6)]',
+    'shadow-[0_0_12px_rgba(6,182,212,0.6)]',
+    'shadow-[0_0_12px_rgba(139,92,246,0.6)]',
+    'shadow-[0_0_12px_rgba(245,158,11,0.6)]',
+    'shadow-[0_0_12px_rgba(14,165,233,0.6)]',
+  ],
   darkMode: 'class',
+
 
   theme: {
     extend: {

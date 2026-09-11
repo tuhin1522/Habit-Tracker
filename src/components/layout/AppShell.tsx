@@ -5,25 +5,32 @@ import { useAppStore } from '../../store/useAppStore';
 import { useHabitStore } from '../../store/useHabitStore';
 import { useGoalStore } from '../../store/useGoalStore';
 import { useJournalStore } from '../../store/useJournalStore';
+import { useFocusStore } from '../../store/useFocusStore';
+import { useSyllabusStore } from '../../store/useSyllabusStore';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { HabitCreator } from '../habits/HabitCreator';
 
 // Lazy-load pages for performance
-const DashboardView = lazy(() => import('../dashboard/DashboardView'));
-const HabitsView = lazy(() => import('../habits/HabitsView'));
-const GoalsView = lazy(() => import('../goals/GoalsView'));
-const JournalView = lazy(() => import('../journal/JournalView'));
-const AnalyticsView = lazy(() => import('../analytics/AnalyticsView'));
-const SettingsView = lazy(() => import('../settings/SettingsView'));
+const DashboardView  = lazy(() => import('../dashboard/DashboardView'));
+const HabitsView     = lazy(() => import('../habits/HabitsView'));
+const GoalsView      = lazy(() => import('../goals/GoalsView'));
+const JournalView    = lazy(() => import('../journal/JournalView'));
+const FocusView      = lazy(() => import('../focus/FocusView'));
+const AnalyticsView  = lazy(() => import('../analytics/AnalyticsView'));
+const SettingsView   = lazy(() => import('../settings/SettingsView'));
+const SyllabusView   = lazy(() => import('../syllabus/SyllabusView'));
+const ArchiveView    = lazy(() => import('../archive/ArchiveView'));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // App Shell — Root layout with data loading
 // ─────────────────────────────────────────────────────────────────────────────
 export function AppShell() {
   const { activePage, isHabitCreatorOpen, closeHabitCreator } = useAppStore();
-  const loadHabits  = useHabitStore((s) => s.loadHabits);
-  const loadGoals   = useGoalStore((s) => s.loadGoals);
-  const loadEntries = useJournalStore((s) => s.loadEntries);
+  const loadHabits        = useHabitStore((s) => s.loadHabits);
+  const loadGoals         = useGoalStore((s) => s.loadGoals);
+  const loadEntries       = useJournalStore((s) => s.loadEntries);
+  const loadFocusSessions = useFocusStore((s) => s.loadSessions);
+  const loadSubjects      = useSyllabusStore((s) => s.loadSubjects);
 
   // Attach keyboard shortcuts
   useKeyboardShortcuts();
@@ -33,15 +40,20 @@ export function AppShell() {
     loadHabits();
     loadGoals();
     loadEntries();
+    loadFocusSessions();
+    loadSubjects();
   }, []);
 
   const PageComponent = {
-    dashboard:  DashboardView,
-    habits:     HabitsView,
-    goals:      GoalsView,
-    journal:    JournalView,
-    analytics:  AnalyticsView,
-    settings:   SettingsView,
+    dashboard: DashboardView,
+    habits:    HabitsView,
+    goals:     GoalsView,
+    journal:   JournalView,
+    focus:     FocusView,
+    analytics: AnalyticsView,
+    settings:  SettingsView,
+    syllabus:  SyllabusView,
+    archive:   ArchiveView,
   }[activePage];
 
   return (

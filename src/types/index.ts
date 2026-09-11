@@ -6,7 +6,22 @@ export type HabitCategory = 'Health' | 'Mindset' | 'Skills' | 'Productivity' | '
 export type HabitFrequency = 'daily' | 'weekly' | '1x/week' | '2x/week' | '3x/week' | '4x/week' | '5x/week' | '6x/week';
 export type TimeSlot = 'Morning' | 'Afternoon' | 'Evening' | 'Night';
 export type GoalStatus = 'active' | 'completed' | 'paused';
-export type NavPage = 'dashboard' | 'habits' | 'goals' | 'journal' | 'analytics' | 'settings';
+export type NavPage = 'dashboard' | 'habits' | 'goals' | 'journal' | 'analytics' | 'settings' | 'focus' | 'syllabus' | 'archive';
+
+// ── Time Tracking ──────────────────────────────────────────────────────────
+export interface TimeSession {
+  id: string;
+  habitId?: string;       // Optional link to a specific habit
+  subjectId?: string;     // Optional link to an academic subject
+  title: string;          // e.g., "English Reading", "Deep Work"
+  durationSeconds: number;
+  dateStr: string;        // 'YYYY-MM-DD'
+  timestamp: string;      // ISO string
+}
+
+export interface DailyTimeTarget {
+  targetSeconds: number;
+}
 
 // ── Habit ──────────────────────────────────────────────────────────────────
 export interface Habit {
@@ -25,8 +40,8 @@ export interface Habit {
   status: 'active' | 'completed' | 'archived';
   completedAt?: string;
   totalDaysTracked: number;
-  
-  // New properties for features
+
+  // Sprint / Numeric properties
   habitType?: 'boolean' | 'numeric_countdown';
   durationDaysTarget?: number;
   numericGoal?: {
@@ -67,6 +82,44 @@ export interface JournalEntry {
   mood: number;              // 1–10
   energy: number;            // 1–10
   notes?: string;
+  createdAt: string;
+}
+
+// ── Academic Syllabus ──────────────────────────────────────────────────────
+export type ChapterStatus = 'not_started' | 'in_progress' | 'mastered';
+
+// Flexible per-subject resource columns — keys are arbitrary column IDs
+export type ChapterResources = Record<string, boolean>;
+
+// Definition of a resource column stored on the Subject
+export interface ResourceColumn {
+  key: string;    // unique identifier, e.g. 'boardBook'
+  label: string;  // display label, e.g. 'Board Book'
+  bangla: string; // Bengali subtitle shown under the label
+  color: string;  // bubble color: 'emerald' | 'sky' | 'amber' | 'violet' | 'cyan'
+}
+
+export interface ChapterRevisions {
+  firstPass: boolean;
+  firstPassDate?: string;   // 'YYYY-MM-DD'
+  secondPass: boolean;
+  secondPassDate?: string;  // 'YYYY-MM-DD'
+}
+
+export interface Chapter {
+  id: string;
+  name: string;
+  order: number;
+  resources: ChapterResources;
+  revisions: ChapterRevisions;
+}
+
+export interface Subject {
+  id: string;
+  name: string;
+  themeColor: string; // hex color
+  chapters: Chapter[];
+  resourceColumns: ResourceColumn[]; // ordered, user-configurable columns
   createdAt: string;
 }
 
@@ -112,3 +165,17 @@ export const TIME_SLOT_EMOJI: Record<TimeSlot, string> = {
   Evening:   '🌆',
   Night:     '🌙',
 };
+
+// Preset subject theme colors
+export const SUBJECT_THEME_COLORS: string[] = [
+  '#10b981', // emerald
+  '#0ea5e9', // sky
+  '#8b5cf6', // violet
+  '#f59e0b', // amber
+  '#f43f5e', // rose
+  '#06b6d4', // cyan
+  '#84cc16', // lime
+  '#f97316', // orange
+  '#ec4899', // pink
+  '#6366f1', // indigo
+];
